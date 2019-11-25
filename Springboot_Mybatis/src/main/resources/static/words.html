@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>登录</title>
+    <!-- Bootstrap -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+    <script src="https://cdn.bootcss.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <script src="https://cdn.bootcss.com/respond.js/1.4.2/respond.min.js"></script>
+    <style type="text/css">
+        div{margin:5px;border:0;padding:0;}
+        .box1{
+            width:1150px;
+            height: 150px;
+            background-image: url(image/your_name-007.jpg);
+        }
+        .box2{
+            width:1150px;
+            height: 150px;
+            background-image: url(image/your_name-007.jpg);
+        }
+        .box3{
+            width:1150px;
+            height:5px;
+            background-color: #1704ba;
+            justify-content:center;
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+    <div class="box1">
+    </div>
+    <div class="box2">
+    </div>
+    <div id="wordArea"></div>
+    <div class="page-icon" id="pages">
+    </div>
+        <h2>留言</h2>
+        <textarea class="form-control s-margin-1" placeholder="留言" rows="3" id="message"></textarea>
+        <input type="text" class="form-control s-margin-1" placeholder="署名" id="userName" >
+        <button class="btn btn-primary s-margin-1" type="submit" onclick="leaveWord()">提交</button>
+
+    </br></br></br></br>
+    <div align="center" class="box3"></div>
+</div>
+
+<script src="js/jquery.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script src="js/util.js"></script>
+<script type="text/javascript" src="js/xlPaging.js"></script>
+<script type="application/javascript">
+    var response;
+
+    var nowPage;
+    // 获取留言列表
+    initWords();
+    function initWords(par) {
+        var request={};
+        if (null != par){
+            request.pageNum=par;
+            nowPage=par;
+        } else{
+            request.pageNum='1';
+            nowPage=1;
+        }
+        request.pageSize='5';
+        $.ajax({
+            async : false,
+            type : 'POST',
+            url : address+"/message/getMessages",
+            data : request,
+            dataType : 'json',
+            success : function(result) {
+                response = result;
+                console.log(response);
+                // location.reload(true);
+
+            },
+            error : function(result) {
+                alert('服务器异常');
+            }
+        });
+        if (response.length == 0) {
+            return;
+        }
+        var words = response.content;
+        words = eval(words);
+        console.log(words);
+        var html = "";
+        for (var i = 0; i < words.length; i++) {
+            html += '<div><h5>' + words[i].message + '</h5>' +
+                '昵称:' +words[i].userName + '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+                + '更新时间:'+words[i].createDate + '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'+
+                'IP:' + words[i].ipAddress;
+
+            // 只有管理员可以回复
+            if (words[i].ipAddress == '192.168.0.104'){
+                html +='&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'+'<a href="javascript:;" class="reply_btn" id="'+words[i].id+'">回复</a>' +
+                    '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'+ '<a href="javascript:;" class="del_btn" onclick="delMessage('+words[i].id+')">删除</a>';
+            }
+
+            if(null != words[i].replyMessage){
+                html +='</br>管理员回复:'+ words[i].replyMessage;
+            }
+
+            html += '</div><hr>';
+        }
+        document.getElementById("wordArea").innerHTML = html;
+    }
+    // 分页处理
+    nextPage();
+    function nextPage() {
+        var html = "<span class=\"page-disabled\"><i></i>上一页</span>\n";
+        var i=1;
+        for (;i<=response.totalPages;i++){
+            nowPage=i;
+            html+='<a href="#" onclick="initWords('+nowPage+')" id="smallPage'+i+'">'+i+'</a>'
+        }
+        if (nowPage>response.totalPages) {
+            html+="<span class=\"page-disabled\"><i></i>下一页</span>\n"
+        } else {
+            html+='<a class="page-next" href="#" onclick="initWords('+'nowPage+1'+')">下一页<i></i></a>'
+        }
+
+        document.getElementById("pages").innerHTML = html;
+    }
+
+    function leaveWord() {
+        var word = {};
+        word.userName = document.getElementById("userName").value;
+        word.message = document.getElementById("message").value;
+        $.ajax({
+            async : false,
+            type : 'POST',
+            url : address+"/message/addMessages",
+            data : word,
+            dataType : 'json',
+            success : function(result) {
+                if(result == "0"){
+                    alert('请填写留言');
+                } else if(result == "1") {
+                    alert('请填写署名');
+                } else if(result == "2"){
+                    alert('提交成功');
+                    location.reload();
+                }
+            },
+            error : function(result) {
+                console.log(result);
+                alert('服务器异常');
+            }
+        });
+    }
+
+    function delMessage(id){
+        var request={};
+        request.id=id;
+
+        $.ajax({
+            async : false,
+            type : 'POST',
+            url : address+"/message/delMessages",
+            data : request,
+            dataType : 'json',
+            success : function(result) {
+                alert('删除成功');
+                location.reload();
+            },
+            error : function(result) {
+                console.log(result);
+                alert('删除成功');
+                location.reload();
+            }
+        });
+    }
+
+    function replyMessage(messageId){
+        var request={};
+        request.id=messageId;
+        request.replyMessage = document.getElementById("replyText").value;
+        $.ajax({
+            async : false,
+            type : 'POST',
+            url : address+"/message/replyMessage",
+            data : request,
+            dataType : 'json',
+            success : function(result) {
+                alert('回复成功');
+                location.reload();
+            },
+            error : function(result) {
+                console.log(result);
+                alert('回复成功');
+                location.reload();
+            }
+        });
+    }
+
+    $(function(){
+        //页面加载完毕后开始执行的事件
+        $(".reply_btn").click(function(e){
+            $(".reply_textarea").remove();
+            // 获取事件触发标签的id
+            var messageId = e.target.id;
+            console.log("消息ID"+messageId);
+            $(this).parent().append("<div class='reply_textarea'>" +
+                "<textarea id='replyText' cols='40' rows='5'></textarea>" +
+                "<br/><input type='submit' value='发表' " +
+                "onclick='replyMessage(" +
+                (messageId) +
+                ")'/></div>");
+        });
+    });
+
+</script>
+</body>
+</html>
