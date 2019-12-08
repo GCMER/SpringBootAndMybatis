@@ -126,7 +126,6 @@ input[type="number"]{
     display:inline-block;/*设置显示的方式为行内块元素*/
     width:5px;
     height:9px;
-    background-image:url(http://img.mukewang.com/547fdbc60001bab900880700.gif);/*获取图标的背景链接*/
 }
 .page-disabled i{
     background-position:-80px -608px;
@@ -136,4 +135,16 @@ input[type="number"]{
 .page-next i{
     background-position:-62px -608px;
     margin-left:3px;
+}
+
+html {
+    height: 100%;
+}
+body {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+.content {
+    flex: 1;
 }
